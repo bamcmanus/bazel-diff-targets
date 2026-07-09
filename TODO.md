@@ -6,8 +6,8 @@ work. The CLI is intended to be built in a new repository named
 
 ## Phase 0: Repository Bootstrap
 
-- [ ] Create new `bazel-diff-targets` repository.
-- [ ] Add MIT `LICENSE`.
+- [x] Create new `bazel-diff-targets` repository.
+- [x] Add MIT `LICENSE`.
 - [ ] Add initial `README.md` with project purpose and MVP scope.
 - [ ] Add `DESIGN.md` copied from the agreed design.
 - [ ] Add `THIRD_PARTY_NOTICES.md` placeholder.
