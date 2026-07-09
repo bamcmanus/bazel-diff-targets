@@ -15,12 +15,12 @@ work. The CLI is intended to be built in a new repository named
 - [x] Add conventional commit guidance.
 - [x] Add commitlint configuration.
 - [x] Add release-please configuration.
-- [ ] Add Renovate configuration.
+- [x] Add Renovate configuration.
 
 ## Phase 1: Bazel And Rust Skeleton
 
-- [ ] Add `MODULE.bazel` using bzlmod.
-- [ ] Add `rules_rust` dependency.
+- [x] Add `MODULE.bazel` using bzlmod.
+- [x] Add `rules_rust` dependency.
 - [ ] Add initial `BUILD.bazel` for the Rust binary.
 - [ ] Add `Cargo.toml` for Rust tooling/editor support.
 - [ ] Create `src/main.rs` with `--help` / `--version` stub behavior.
