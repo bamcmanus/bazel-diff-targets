@@ -8,8 +8,8 @@ work. The CLI is intended to be built in a new repository named
 
 - [x] Create new `bazel-diff-targets` repository.
 - [x] Add MIT `LICENSE`.
-- [ ] Add initial `README.md` with project purpose and MVP scope.
-- [ ] Add `DESIGN.md` copied from the agreed design.
+- [x] Add initial `README.md` with project purpose and MVP scope.
+- [x] Add `DESIGN.md` copied from the agreed design.
 - [ ] Add `THIRD_PARTY_NOTICES.md` placeholder.
 - [ ] Add `.gitignore` for Rust, Bazel, and editor artifacts.
 - [ ] Add conventional commit guidance.
