@@ -14,7 +14,7 @@ work. The CLI is intended to be built in a new repository named
 - [x] Add `.gitignore` for Rust, Bazel, and editor artifacts.
 - [x] Add conventional commit guidance.
 - [x] Add commitlint configuration.
-- [ ] Add release-please configuration.
+- [x] Add release-please configuration.
 - [ ] Add Renovate configuration.
 
 ## Phase 1: Bazel And Rust Skeleton

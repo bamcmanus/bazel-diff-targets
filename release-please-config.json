@@ -1,0 +1,10 @@
+{
+  "packages": {
+    ".": {
+      "release-type": "rust",
+      "package-name": "bazel-diff-targets",
+      "changelog-path": "CHANGELOG.md",
+      "initial-version": "0.1.0"
+    }
+  }
+}
