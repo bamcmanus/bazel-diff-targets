@@ -10,7 +10,7 @@ work. The CLI is intended to be built in a new repository named
 - [x] Add MIT `LICENSE`.
 - [x] Add initial `README.md` with project purpose and MVP scope.
 - [x] Add `DESIGN.md` copied from the agreed design.
-- [ ] Add `THIRD_PARTY_NOTICES.md` placeholder.
+- [x] Add `THIRD_PARTY_NOTICES.md` placeholder.
 - [ ] Add `.gitignore` for Rust, Bazel, and editor artifacts.
 - [ ] Add conventional commit guidance.
 - [ ] Add commitlint configuration.
@@ -33,7 +33,8 @@ work. The CLI is intended to be built in a new repository named
 - [ ] Add Bazel external artifact fetch with exact URL and SHA256.
 - [ ] Add generated/constant bundled bazel-diff version metadata.
 - [ ] Embed `bazel-diff_deploy.jar` bytes into the Rust binary at compile time.
-- [ ] Add `--version` output including CLI version and bundled bazel-diff version.
+- [ ] Add `--version` output including CLI version and bundled bazel-diff
+      version.
 - [ ] Update `THIRD_PARTY_NOTICES.md` with upstream source URL, bundled version,
       and full upstream license text.
 
@@ -59,7 +60,8 @@ work. The CLI is intended to be built in a new repository named
   - [ ] `--quiet`
   - [ ] `--verbose`
 - [ ] Enforce conflicts:
-  - [ ] `--exclude-external-targets` conflicts with `--include-external-targets`.
+  - [ ] `--exclude-external-targets` conflicts with
+        `--include-external-targets`.
   - [ ] `--include-distance` requires `--json`.
 - [ ] Validate repeated `--target-type` values are non-empty after trimming.
 - [ ] Add unit tests for argument parsing and validation.
@@ -244,7 +246,8 @@ work. The CLI is intended to be built in a new repository named
 - [ ] Document stdout/stderr consumer contract.
 - [ ] Document JSON schema.
 - [ ] Document exit code semantics.
-- [ ] Document embedded bazel-diff version and custom `--bazel-diff-jar` override.
+- [ ] Document embedded bazel-diff version and custom `--bazel-diff-jar`
+      override.
 - [ ] Document that no GitHub Actions or Buildkite behavior exists in the CLI.
 
 ## Phase 14: CI And Release Automation
@@ -258,7 +261,8 @@ work. The CLI is intended to be built in a new repository named
 - [ ] Build Linux x86_64 artifact.
 - [ ] Attempt Linux arm64 artifact.
 - [ ] Prefer musl Linux targets; fall back to GNU if necessary.
-- [ ] Package archives with binary, `LICENSE`, `THIRD_PARTY_NOTICES.md`, and docs.
+- [ ] Package archives with binary, `LICENSE`, `THIRD_PARTY_NOTICES.md`, and
+      docs.
 - [ ] Generate `SHA256SUMS`.
 - [ ] Upload artifacts to GitHub Release.
 - [ ] Smoke-test release archives by extracting and running:
