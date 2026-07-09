@@ -12,8 +12,8 @@ work. The CLI is intended to be built in a new repository named
 - [x] Add `DESIGN.md` copied from the agreed design.
 - [x] Add `THIRD_PARTY_NOTICES.md` placeholder.
 - [x] Add `.gitignore` for Rust, Bazel, and editor artifacts.
-- [ ] Add conventional commit guidance.
-- [ ] Add commitlint configuration.
+- [x] Add conventional commit guidance.
+- [x] Add commitlint configuration.
 - [ ] Add release-please configuration.
 - [ ] Add Renovate configuration.
 
