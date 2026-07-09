@@ -1,0 +1,11 @@
+[package]
+name = "bazel-diff-targets"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "CI-neutral CLI for computing impacted Bazel targets between Git refs."
+publish = false
+
+[[bin]]
+name = "bazel-diff-targets"
+path = "src/main.rs"

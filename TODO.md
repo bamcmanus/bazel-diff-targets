@@ -21,9 +21,9 @@ work. The CLI is intended to be built in a new repository named
 
 - [x] Add `MODULE.bazel` using bzlmod.
 - [x] Add `rules_rust` dependency.
-- [ ] Add initial `BUILD.bazel` for the Rust binary.
-- [ ] Add `Cargo.toml` for Rust tooling/editor support.
-- [ ] Create `src/main.rs` with `--help` / `--version` stub behavior.
+- [x] Add initial `BUILD.bazel` for the Rust binary.
+- [x] Add `Cargo.toml` for Rust tooling/editor support.
+- [x] Create `src/main.rs` with `--help` / `--version` stub behavior.
 - [ ] Add CI job that builds the skeleton on Linux.
 - [ ] Add CI job that builds or checks the skeleton on macOS.
 
