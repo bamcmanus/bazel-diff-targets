@@ -1,0 +1,20 @@
+# Rust
+/target/
+Cargo.lock
+
+# Bazel
+/bazel-*
+/bazel-bin/
+/bazel-out/
+/bazel-testlogs/
+
+# Local editor and OS files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Local environment files
+.env
+.env.*

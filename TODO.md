@@ -11,7 +11,7 @@ work. The CLI is intended to be built in a new repository named
 - [x] Add initial `README.md` with project purpose and MVP scope.
 - [x] Add `DESIGN.md` copied from the agreed design.
 - [x] Add `THIRD_PARTY_NOTICES.md` placeholder.
-- [ ] Add `.gitignore` for Rust, Bazel, and editor artifacts.
+- [x] Add `.gitignore` for Rust, Bazel, and editor artifacts.
 - [ ] Add conventional commit guidance.
 - [ ] Add commitlint configuration.
 - [ ] Add release-please configuration.
