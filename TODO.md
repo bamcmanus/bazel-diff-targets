@@ -40,31 +40,31 @@ work. The CLI is intended to be built in a new repository named
 
 ## Phase 3: Argument Parsing
 
-- [ ] Add `clap` dependency.
-- [ ] Implement `src/args.rs`.
-- [ ] Add top-level flags:
-  - [ ] `--base-ref`
-  - [ ] `--head-ref`
-  - [ ] `--workspace-path`
-  - [ ] `--java-path`
-  - [ ] `--bazel-path`
-  - [ ] `--bazel-diff-jar`
-  - [ ] repeated `--target-type`
-  - [ ] `--use-cquery`
-  - [ ] `--exclude-external-targets`
-  - [ ] `--include-external-targets`
-  - [ ] `--include-distance`
-  - [ ] `--bazel-startup-options`
-  - [ ] `--bazel-command-options`
-  - [ ] `--json`
-  - [ ] `--quiet`
-  - [ ] `--verbose`
-- [ ] Enforce conflicts:
-  - [ ] `--exclude-external-targets` conflicts with
+- [x] Add `clap` dependency.
+- [x] Implement `src/args.rs`.
+- [x] Add top-level flags:
+  - [x] `--base-ref`
+  - [x] `--head-ref`
+  - [x] `--workspace-path`
+  - [x] `--java-path`
+  - [x] `--bazel-path`
+  - [x] `--bazel-diff-jar`
+  - [x] repeated `--target-type`
+  - [x] `--use-cquery`
+  - [x] `--exclude-external-targets`
+  - [x] `--include-external-targets`
+  - [x] `--include-distance`
+  - [x] `--bazel-startup-options`
+  - [x] `--bazel-command-options`
+  - [x] `--json`
+  - [x] `--quiet`
+  - [x] `--verbose`
+- [x] Enforce conflicts:
+  - [x] `--exclude-external-targets` conflicts with
         `--include-external-targets`.
-  - [ ] `--include-distance` requires `--json`.
-- [ ] Validate repeated `--target-type` values are non-empty after trimming.
-- [ ] Add unit tests for argument parsing and validation.
+  - [x] `--include-distance` requires `--json`.
+- [x] Validate repeated `--target-type` values are non-empty after trimming.
+- [x] Add unit tests for argument parsing and validation.
 
 ## Phase 4: Error Model
 

@@ -1,7 +1,28 @@
-load("@rules_rust//rust:defs.bzl", "rust_binary")
+load("@crates//:defs.bzl", "aliases", "all_crate_deps", "crate_edition")
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_test")
 
 rust_binary(
     name = "bazel-diff-targets",
-    srcs = ["src/main.rs"],
-    edition = "2021",
+    srcs = [
+        "src/args.rs",
+        "src/main.rs",
+    ],
+    aliases = aliases(),
+    edition = crate_edition(),
+    proc_macro_deps = all_crate_deps(proc_macro = True),
+    deps = all_crate_deps(normal = True),
+)
+
+rust_test(
+    name = "unit_tests",
+    size = "small",
+    srcs = [
+        "src/args.rs",
+        "src/main.rs",
+    ],
+    aliases = aliases(),
+    crate_root = "src/main.rs",
+    edition = crate_edition(),
+    proc_macro_deps = all_crate_deps(proc_macro = True),
+    deps = all_crate_deps(normal = True),
 )

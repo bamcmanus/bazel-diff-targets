@@ -7,8 +7,8 @@ on:
       - main
 
 jobs:
-  bazel-build:
-    name: Bazel build (${{ matrix.os }})
+  bazel-build-and-test:
+    name: Bazel build & test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -26,3 +26,6 @@ jobs:
 
       - name: Build
         run: bazel build //...
+
+      - name: Test
+        run: bazel test //...
