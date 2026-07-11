@@ -1,5 +1,6 @@
 mod args;
 mod error;
+mod git;
 
 use clap::Parser;
 

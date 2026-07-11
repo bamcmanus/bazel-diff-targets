@@ -6,6 +6,7 @@ rust_binary(
     srcs = [
         "src/args.rs",
         "src/error.rs",
+        "src/git.rs",
         "src/main.rs",
     ],
     aliases = aliases(),
@@ -20,6 +21,7 @@ rust_test(
     srcs = [
         "src/args.rs",
         "src/error.rs",
+        "src/git.rs",
         "src/main.rs",
     ],
     aliases = aliases(),

@@ -90,17 +90,17 @@ work. The CLI is intended to be built in a new repository named
 
 ## Phase 5: Git Repository Logic
 
-- [ ] Implement `src/git.rs` Git backend helpers.
-- [ ] Discover Git root.
-- [ ] Reject bare repositories.
-- [ ] Reject shallow repositories before base inference.
-- [ ] Capture current branch when the run starts on a branch.
-- [ ] Capture current `HEAD` commit SHA.
-- [ ] Resolve refs to commit SHAs.
-- [ ] Infer local base ref from merge-base with:
-  - [ ] `origin/HEAD`
-  - [ ] `origin/main`
-  - [ ] `origin/master`
+- [x] Implement `src/git.rs` Git backend helpers.
+- [x] Discover Git root.
+- [x] Reject bare repositories.
+- [x] Reject shallow repositories before base inference.
+- [x] Capture current branch when the run starts on a branch.
+- [x] Capture current `HEAD` commit SHA.
+- [x] Resolve refs to commit SHAs.
+- [x] Infer local base ref from merge-base with:
+  - [x] `origin/HEAD`
+  - [x] `origin/main`
+  - [x] `origin/master`
 - [ ] Implement dirty working tree detection.
 - [ ] Treat untracked files as dirty.
 - [ ] Ignore ignored files.
