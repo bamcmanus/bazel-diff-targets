@@ -46,6 +46,7 @@ work. The CLI is intended to be built in a new repository named
   - [x] `--base-ref`
   - [x] `--head-ref`
   - [x] `--workspace-path`
+  - [ ] `--dirty`
   - [x] `--java-path`
   - [x] `--bazel-path`
   - [x] `--bazel-diff-jar`
@@ -63,6 +64,7 @@ work. The CLI is intended to be built in a new repository named
   - [x] `--exclude-external-targets` conflicts with
         `--include-external-targets`.
   - [x] `--include-distance` requires `--json`.
+  - [ ] `--dirty` conflicts with `--head-ref`.
 - [x] Validate repeated `--target-type` values are non-empty after trimming.
 - [x] Add unit tests for argument parsing and validation.
 
@@ -88,25 +90,34 @@ work. The CLI is intended to be built in a new repository named
 
 ## Phase 5: Git Repository Logic
 
-- [ ] Implement `src/git.rs` command runner helpers.
-- [ ] Discover Git root with `git rev-parse --show-toplevel`.
+- [ ] Implement `src/git.rs` Git backend helpers.
+- [ ] Discover Git root.
 - [ ] Reject bare repositories.
 - [ ] Reject shallow repositories before base inference.
-- [ ] Capture original branch with `git symbolic-ref --quiet --short HEAD`.
-- [ ] Capture original commit with `git rev-parse HEAD`.
-- [ ] Resolve refs with `git rev-parse --verify <ref>^{commit}`.
+- [ ] Capture current branch when the run starts on a branch.
+- [ ] Capture current `HEAD` commit SHA.
+- [ ] Resolve refs to commit SHAs.
 - [ ] Infer local base ref from merge-base with:
   - [ ] `origin/HEAD`
   - [ ] `origin/main`
   - [ ] `origin/master`
-- [ ] Implement clean working tree check using `git status --porcelain`.
+- [ ] Implement dirty working tree detection.
 - [ ] Treat untracked files as dirty.
 - [ ] Ignore ignored files.
 - [ ] Include capped dirty file list in errors.
-- [ ] Implement checkout via `git checkout`.
-- [ ] Implement restore original branch/commit cleanup behavior.
+- [ ] Enforce clean working tree unless `--dirty` is passed.
+- [ ] Reject `--dirty` with explicit `--head-ref`.
+- [ ] Model prepared comparison workspaces for base and head.
+- [ ] Use current workspace for dirty head mode.
+- [ ] Use current workspace when it already represents the selected clean side.
+- [ ] Create temporary detached worktree for base when needed.
+- [ ] Create temporary detached worktree for explicit/non-current head when needed.
+- [ ] Map workspace path into temporary worktrees by preserving the Git-root-relative path.
+- [ ] Remove temporary worktrees and files created by the CLI during cleanup.
 - [ ] Add unit tests with fake command runner where practical.
 - [ ] Add integration tests for ref inference in a temp Git repo.
+- [ ] Add integration tests for dirty mode using the current workspace.
+- [ ] Add integration tests for temporary worktree creation and cleanup.
 
 ## Phase 6: Workspace Validation
 
@@ -183,16 +194,17 @@ work. The CLI is intended to be built in a new repository named
   - [ ] discover repo and workspace
   - [ ] reject bare/shallow repo
   - [ ] resolve/infer refs
-  - [ ] validate clean working tree
+  - [ ] validate dirty/clean working tree mode
   - [ ] validate Java/Bazel/JAR
-  - [ ] perform checkout/generate/compare work
+  - [ ] prepare comparison workspaces
+  - [ ] perform generate/compare work
 - [ ] Generate head hashes first.
-- [ ] Avoid unnecessary checkout when selected head is current `HEAD`.
-- [ ] Checkout base and generate base hashes.
+- [ ] Use current workspace for dirty head mode.
+- [ ] Avoid unnecessary worktree creation when a selected side is already current and clean.
+- [ ] Generate base hashes from prepared base workspace.
 - [ ] Run impacted target comparison.
-- [ ] Restore original branch/commit in cleanup.
-- [ ] Ensure cleanup removes only temp directories/files created by the CLI.
-- [ ] Add failure tests for restoration errors where practical.
+- [ ] Ensure cleanup removes only temp worktrees/directories/files created by the CLI.
+- [ ] Add failure tests for temporary worktree cleanup errors where practical.
 
 ## Phase 11: Output Formatting
 
@@ -225,7 +237,8 @@ work. The CLI is intended to be built in a new repository named
 - [ ] Assert JSON output summary.
 - [ ] Add no-impacted-targets test.
 - [ ] Add explicit `--base-ref HEAD~3 --head-ref HEAD~1` style test.
-- [ ] Ensure user is restored to original branch/commit after run.
+- [ ] Add `--dirty` test that includes uncommitted workspace changes.
+- [ ] Ensure user's original checkout is not mutated after run.
 
 ## Phase 13: Documentation
 
@@ -241,8 +254,9 @@ work. The CLI is intended to be built in a new repository named
   - [ ] Linux
 - [ ] Document Bazel/Bazelisk requirement and `--bazel-path` / `$BAZEL`.
 - [ ] Document no runtime network initiated by the CLI.
-- [ ] Document checkout mutation and restore behavior prominently.
-- [ ] Document clean working tree requirement.
+- [ ] Document temporary worktree behavior and cleanup.
+- [ ] Document clean working tree requirement unless `--dirty` is passed.
+- [ ] Document `--dirty` current-workspace semantics.
 - [ ] Document stdout/stderr consumer contract.
 - [ ] Document JSON schema.
 - [ ] Document exit code semantics.
@@ -295,8 +309,7 @@ work. The CLI is intended to be built in a new repository named
 
 ## Deferred CLI Features
 
-- [ ] Dirty working tree / uncommitted changes support.
-- [ ] Temporary worktree strategy.
+- [ ] Parallel base/head hash generation.
 - [ ] Output file flags.
 - [ ] Shell completions.
 - [ ] Homebrew distribution.

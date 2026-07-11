@@ -56,13 +56,19 @@ The MVP uses long kebab-case flags only. There are no short aliases.
 --base-ref <ref>
 --head-ref <ref>
 --workspace-path <path>
+--dirty
 ```
 
 Behavior:
 
-- `--head-ref` defaults to the current `HEAD` commit.
+- `--head-ref`, if omitted, defaults to the current `HEAD` commit unless
+  `--dirty` is passed.
+- `--dirty` is only valid when `--head-ref` is omitted.
+- With `--dirty`, the head side is the current workspace filesystem state,
+  including all staged, unstaged, and untracked files.
 - `--base-ref`, if omitted, is inferred for local usage.
 - CI adapters should pass both `--base-ref` and `--head-ref` explicitly.
+- CI adapters should not pass `--dirty`.
 - If `--workspace-path` is omitted, it defaults to the Git repository root.
 - If `--workspace-path` is explicitly provided, it is resolved relative to the
   current working directory.
@@ -147,7 +153,24 @@ Rejected inputs:
 - invalid refs;
 - non-commit Git objects.
 
-Resolved SHAs are used for checkout, logging, and JSON output.
+Resolved SHAs are used for worktree preparation, logging, and JSON output.
+
+### Dirty Local Head Semantics
+
+`--dirty` is an explicit local-development mode for answering: "what targets do
+my current uncommitted changes impact?"
+
+Rules:
+
+- `--dirty` conflicts with `--head-ref`.
+- If `--head-ref` is omitted and `--dirty` is not passed, the head side is the
+  current `HEAD` commit and the working tree must be clean.
+- If `--head-ref` is omitted and `--dirty` is passed, the head side is the
+  current workspace state on disk.
+- Dirty mode includes all staged, unstaged, and untracked files because Bazel is
+  run against the current filesystem state.
+- Ignored files are not specially filtered by the CLI; if Bazel sees them through
+  workspace configuration, they may influence the result.
 
 ### Local Base Ref Inference
 
@@ -170,7 +193,7 @@ The MVP requires:
 
 - current directory is inside a non-bare Git repository;
 - repository is non-shallow;
-- working tree is clean before any checkout mutation;
+- working tree is clean unless `--dirty` is passed;
 - clean means `git status --porcelain` is empty;
 - untracked files count as dirty;
 - ignored files do not count as dirty.
@@ -185,35 +208,44 @@ submodules before invoking the CLI if their Bazel workspace requires them.
 
 ## Checkout Strategy
 
-The MVP mutates the current checkout, protected by the clean working tree
-requirement.
+The MVP does not mutate the user's current checkout. It prepares comparison
+workspaces using the current workspace when safe and temporary Git worktrees when
+needed.
 
 Flow:
 
-1. record the original branch if the run starts on a branch;
-2. record the original commit SHA;
-3. resolve head and base refs to SHAs;
-4. checkout the head SHA if needed;
-5. generate head hashes first;
-6. checkout the base SHA;
-7. generate base hashes;
+1. resolve or select the head side:
+   - if `--dirty` is passed, use the current workspace state;
+   - otherwise resolve `--head-ref` or `HEAD` to a commit SHA;
+2. resolve or infer the base commit SHA;
+3. validate the working tree is clean unless `--dirty` is passed;
+4. prepare a head workspace:
+   - use the current workspace for dirty mode;
+   - use the current workspace if it already represents the selected clean head;
+   - otherwise create a temporary detached worktree at the head SHA;
+5. prepare a base workspace:
+   - use the current workspace only if it already represents the selected clean
+     base;
+   - otherwise create a temporary detached worktree at the base SHA;
+6. generate head hashes from the prepared head workspace;
+7. generate base hashes from the prepared base workspace;
 8. compare hashes;
-9. restore the original branch if the run started on a branch;
-10. otherwise restore the original commit SHA.
+9. remove temporary worktrees and temporary files created by the CLI.
 
-The CLI uses `git checkout` for compatibility. It does not implement branch
-movement detection. If restoration fails, it emits a loud error or warning.
+Temporary worktrees are created with detached commits so existing branches are
+not moved or checked out in multiple places. Cleanup must remove only worktrees
+and files created by the CLI. If cleanup fails, the CLI emits a loud error or
+warning with the path that may require manual removal.
 
-Temporary worktree support is deferred.
-
-Dirty working tree and uncommitted change support is deferred. A future design
-should prefer a safe temporary-worktree strategy over automatic stash/pop.
+The MVP does not automatically stash, commit, or patch uncommitted changes.
 
 ## Workspace Behavior
 
 - Git root is discovered from the current working directory.
 - Git commands run from the Git root.
 - Workspace path must canonicalize inside the Git root.
+- For temporary worktrees, the selected workspace path is mapped by preserving
+  its relative path from the canonical Git root to the temporary worktree root.
 - Nested Bazel workspaces are allowed.
 - Symlinked workspace paths are allowed if the canonicalized target remains
   inside the canonical Git root.
@@ -424,6 +456,7 @@ Docs should call out that distinction.
 
 The CLI creates a unique temp directory for intermediate artifacts:
 
+- temporary detached Git worktrees;
 - head hashes;
 - base hashes;
 - dependency edges file when distance output is enabled;
@@ -534,7 +567,7 @@ src/
   main.rs          # top-level orchestration and process exit behavior
   args.rs          # clap definitions
   error.rs         # typed errors plus human/JSON formatting
-  git.rs           # git root/ref/clean/checkout logic
+  git.rs           # git root/ref/dirty/worktree preparation logic
   toolchain.rs     # Java/Bazel resolution and validation
   bazel_diff.rs    # embedded JAR cache/extraction plus java -jar calls
   output.rs        # text/JSON parsing and formatting
@@ -598,8 +631,7 @@ The Buildkite plugin should:
 
 ## Deferred Features
 
-- dirty working tree / uncommitted changes support;
-- temporary worktree strategy;
+- parallel base/head hash generation;
 - output file flags;
 - shell completions;
 - Homebrew distribution;
