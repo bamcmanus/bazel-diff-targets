@@ -13,6 +13,9 @@ pub struct Args {
     #[arg(long = "head-ref")]
     pub head_ref: Option<String>,
 
+    #[arg(long = "dirty", conflicts_with = "head_ref")]
+    pub dirty: bool,
+
     #[arg(long = "workspace-path")]
     pub workspace_path: Option<PathBuf>,
 
@@ -123,5 +126,20 @@ mod tests {
             error.kind(),
             clap::error::ErrorKind::MissingRequiredArgument
         );
+    }
+
+    #[test]
+    fn parse_dirty_flag() {
+        let args = Args::parse_from(["bazel-diff-targets", "--dirty"]);
+
+        assert!(args.dirty);
+    }
+
+    #[test]
+    fn dirty_conflicts_with_head_ref() {
+        let error = Args::try_parse_from(["bazel-diff-targets", "--dirty", "--head-ref", "HEAD~1"])
+            .unwrap_err();
+
+        assert_eq!(error.kind(), clap::error::ErrorKind::ArgumentConflict);
     }
 }

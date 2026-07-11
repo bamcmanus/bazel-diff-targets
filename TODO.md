@@ -46,7 +46,7 @@ work. The CLI is intended to be built in a new repository named
   - [x] `--base-ref`
   - [x] `--head-ref`
   - [x] `--workspace-path`
-  - [ ] `--dirty`
+  - [x] `--dirty`
   - [x] `--java-path`
   - [x] `--bazel-path`
   - [x] `--bazel-diff-jar`
@@ -64,7 +64,7 @@ work. The CLI is intended to be built in a new repository named
   - [x] `--exclude-external-targets` conflicts with
         `--include-external-targets`.
   - [x] `--include-distance` requires `--json`.
-  - [ ] `--dirty` conflicts with `--head-ref`.
+  - [x] `--dirty` conflicts with `--head-ref`.
 - [x] Validate repeated `--target-type` values are non-empty after trimming.
 - [x] Add unit tests for argument parsing and validation.
 
@@ -111,8 +111,10 @@ work. The CLI is intended to be built in a new repository named
 - [ ] Use current workspace for dirty head mode.
 - [ ] Use current workspace when it already represents the selected clean side.
 - [ ] Create temporary detached worktree for base when needed.
-- [ ] Create temporary detached worktree for explicit/non-current head when needed.
-- [ ] Map workspace path into temporary worktrees by preserving the Git-root-relative path.
+- [ ] Create temporary detached worktree for explicit/non-current head when
+      needed.
+- [ ] Map workspace path into temporary worktrees by preserving the
+      Git-root-relative path.
 - [ ] Remove temporary worktrees and files created by the CLI during cleanup.
 - [ ] Add unit tests with fake command runner where practical.
 - [ ] Add integration tests for ref inference in a temp Git repo.
@@ -200,10 +202,12 @@ work. The CLI is intended to be built in a new repository named
   - [ ] perform generate/compare work
 - [ ] Generate head hashes first.
 - [ ] Use current workspace for dirty head mode.
-- [ ] Avoid unnecessary worktree creation when a selected side is already current and clean.
+- [ ] Avoid unnecessary worktree creation when a selected side is already
+      current and clean.
 - [ ] Generate base hashes from prepared base workspace.
 - [ ] Run impacted target comparison.
-- [ ] Ensure cleanup removes only temp worktrees/directories/files created by the CLI.
+- [ ] Ensure cleanup removes only temp worktrees/directories/files created by
+      the CLI.
 - [ ] Add failure tests for temporary worktree cleanup errors where practical.
 
 ## Phase 11: Output Formatting
