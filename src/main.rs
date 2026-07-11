@@ -1,4 +1,5 @@
 mod args;
+mod error;
 
 use clap::Parser;
 

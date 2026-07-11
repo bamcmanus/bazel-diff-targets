@@ -68,23 +68,23 @@ work. The CLI is intended to be built in a new repository named
 
 ## Phase 4: Error Model
 
-- [ ] Add `thiserror` dependency.
-- [ ] Implement `src/error.rs` with typed application errors.
-- [ ] Define stable error kinds for expected failures:
-  - [ ] missing Java
-  - [ ] missing Bazel
-  - [ ] invalid ref
-  - [ ] base ref inference failure
-  - [ ] dirty working tree
-  - [ ] shallow repository
-  - [ ] bare repository
-  - [ ] workspace validation failure
-  - [ ] checkout failure
-  - [ ] bazel-diff execution failure
-  - [ ] output parsing failure
-- [ ] Implement human-readable stderr formatting.
-- [ ] Implement JSON error formatting for `--json` mode.
-- [ ] Add unit tests for text and JSON error output.
+- [x] Add `thiserror` dependency.
+- [x] Implement `src/error.rs` with typed application errors.
+- [x] Define stable error kinds for expected failures:
+  - [x] missing Java
+  - [x] missing Bazel
+  - [x] invalid ref
+  - [x] base ref inference failure
+  - [x] dirty working tree
+  - [x] shallow repository
+  - [x] bare repository
+  - [x] workspace validation failure
+  - [x] checkout failure
+  - [x] bazel-diff execution failure
+  - [x] output parsing failure
+- [x] Implement human-readable stderr formatting.
+- [x] Implement JSON error formatting for `--json` mode.
+- [x] Add unit tests for text and JSON error output.
 
 ## Phase 5: Git Repository Logic
 

@@ -5,6 +5,7 @@ rust_binary(
     name = "bazel-diff-targets",
     srcs = [
         "src/args.rs",
+        "src/error.rs",
         "src/main.rs",
     ],
     aliases = aliases(),
@@ -18,6 +19,7 @@ rust_test(
     size = "small",
     srcs = [
         "src/args.rs",
+        "src/error.rs",
         "src/main.rs",
     ],
     aliases = aliases(),
