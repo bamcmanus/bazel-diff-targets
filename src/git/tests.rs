@@ -268,6 +268,95 @@ fn fails_to_infer_base_ref_when_default_branch_candidates_are_missing() {
     std::fs::remove_dir_all(repo_dir).expect("remove test repository");
 }
 
+#[test]
+fn clean_working_tree_is_not_dirty() {
+    let repo_dir = new_temp_dir("clean-working-tree-repo");
+    run_git_for_test(&repo_dir, &["init", "--initial-branch", "main"]);
+    run_git_for_test(&repo_dir, &["config", "user.name", "Test User"]);
+    run_git_for_test(&repo_dir, &["config", "user.email", "test@example.invalid"]);
+    std::fs::write(repo_dir.join("README.md"), "# test\n").expect("write test file");
+    run_git_for_test(&repo_dir, &["add", "README.md"]);
+    run_git_for_test(&repo_dir, &["commit", "-m", "initial commit"]);
+    let repository =
+        GitRepository::discover(repo_dir.as_path()).expect("discover test Git repository");
+
+    let is_dirty = repository
+        .is_working_tree_dirty()
+        .expect("check working tree status");
+
+    assert!(!is_dirty);
+
+    std::fs::remove_dir_all(repo_dir).expect("remove test repository");
+}
+
+#[test]
+fn modified_tracked_file_makes_working_tree_dirty() {
+    let repo_dir = new_temp_dir("modified-tracked-file-repo");
+    run_git_for_test(&repo_dir, &["init", "--initial-branch", "main"]);
+    run_git_for_test(&repo_dir, &["config", "user.name", "Test User"]);
+    run_git_for_test(&repo_dir, &["config", "user.email", "test@example.invalid"]);
+    std::fs::write(repo_dir.join("README.md"), "# test\n").expect("write test file");
+    run_git_for_test(&repo_dir, &["add", "README.md"]);
+    run_git_for_test(&repo_dir, &["commit", "-m", "initial commit"]);
+    std::fs::write(repo_dir.join("README.md"), "# test\n\nmodified\n")
+        .expect("modify tracked file");
+    let repository =
+        GitRepository::discover(repo_dir.as_path()).expect("discover test Git repository");
+
+    let is_dirty = repository
+        .is_working_tree_dirty()
+        .expect("check working tree status");
+
+    assert!(is_dirty);
+
+    std::fs::remove_dir_all(repo_dir).expect("remove test repository");
+}
+
+#[test]
+fn untracked_file_makes_working_tree_dirty() {
+    let repo_dir = new_temp_dir("untracked-file-repo");
+    run_git_for_test(&repo_dir, &["init", "--initial-branch", "main"]);
+    run_git_for_test(&repo_dir, &["config", "user.name", "Test User"]);
+    run_git_for_test(&repo_dir, &["config", "user.email", "test@example.invalid"]);
+    std::fs::write(repo_dir.join("README.md"), "# test\n").expect("write test file");
+    run_git_for_test(&repo_dir, &["add", "README.md"]);
+    run_git_for_test(&repo_dir, &["commit", "-m", "initial commit"]);
+    std::fs::write(repo_dir.join("untracked.txt"), "untracked\n").expect("write untracked file");
+    let repository =
+        GitRepository::discover(repo_dir.as_path()).expect("discover test Git repository");
+
+    let is_dirty = repository
+        .is_working_tree_dirty()
+        .expect("check working tree status");
+
+    assert!(is_dirty);
+
+    std::fs::remove_dir_all(repo_dir).expect("remove test repository");
+}
+
+#[test]
+fn ignored_file_does_not_make_working_tree_dirty() {
+    let repo_dir = new_temp_dir("ignored-file-repo");
+    run_git_for_test(&repo_dir, &["init", "--initial-branch", "main"]);
+    run_git_for_test(&repo_dir, &["config", "user.name", "Test User"]);
+    run_git_for_test(&repo_dir, &["config", "user.email", "test@example.invalid"]);
+    std::fs::write(repo_dir.join("README.md"), "# test\n").expect("write test file");
+    std::fs::write(repo_dir.join(".gitignore"), "ignored.txt\n").expect("write gitignore");
+    run_git_for_test(&repo_dir, &["add", "README.md", ".gitignore"]);
+    run_git_for_test(&repo_dir, &["commit", "-m", "initial commit"]);
+    std::fs::write(repo_dir.join("ignored.txt"), "ignored\n").expect("write ignored file");
+    let repository =
+        GitRepository::discover(repo_dir.as_path()).expect("discover test Git repository");
+
+    let is_dirty = repository
+        .is_working_tree_dirty()
+        .expect("check working tree status");
+
+    assert!(!is_dirty);
+
+    std::fs::remove_dir_all(repo_dir).expect("remove test repository");
+}
+
 fn run_git_output_for_test(root: &std::path::Path, args: &[&str]) -> String {
     let output = std::process::Command::new("git")
         .args(args)

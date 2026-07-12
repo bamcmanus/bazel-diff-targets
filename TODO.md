@@ -103,12 +103,12 @@ work. The CLI is intended to be built in a new repository named
   - [x] `origin/HEAD`
   - [x] `origin/main`
   - [x] `origin/master`
-- [ ] Implement dirty working tree detection.
-- [ ] Treat untracked files as dirty.
-- [ ] Ignore ignored files.
+- [x] Implement dirty working tree detection.
+- [x] Treat untracked files as dirty.
+- [x] Ignore ignored files.
 - [x] Omit dirty file list from errors; users can run `git status` for details.
-- [ ] Enforce clean working tree unless `--dirty` is passed.
-- [ ] Reject `--dirty` with explicit `--head-ref`.
+- [x] Enforce clean working tree unless `--dirty` is passed.
+- [x] Reject `--dirty` with explicit `--head-ref`.
 - [ ] Model prepared comparison workspaces for base and head.
 - [ ] Use current workspace for dirty head mode.
 - [ ] Use current workspace when it already represents the selected clean side.
