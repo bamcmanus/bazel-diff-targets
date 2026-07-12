@@ -90,7 +90,9 @@ work. The CLI is intended to be built in a new repository named
 
 ## Phase 5: Git Repository Logic
 
-- [x] Implement `src/git.rs` Git backend helpers.
+- [x] Implement `src/git/` Git backend helpers.
+- [x] Split Git module into public repository API, backend trait, CLI backend,
+      and tests.
 - [x] Discover Git root.
 - [x] Reject bare repositories.
 - [x] Reject shallow repositories before base inference.
@@ -104,7 +106,7 @@ work. The CLI is intended to be built in a new repository named
 - [ ] Implement dirty working tree detection.
 - [ ] Treat untracked files as dirty.
 - [ ] Ignore ignored files.
-- [ ] Include capped dirty file list in errors.
+- [x] Omit dirty file list from errors; users can run `git status` for details.
 - [ ] Enforce clean working tree unless `--dirty` is passed.
 - [ ] Reject `--dirty` with explicit `--head-ref`.
 - [ ] Model prepared comparison workspaces for base and head.

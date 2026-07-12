@@ -6,7 +6,9 @@ rust_binary(
     srcs = [
         "src/args.rs",
         "src/error.rs",
-        "src/git.rs",
+        "src/git/backend.rs",
+        "src/git/cli_backend.rs",
+        "src/git/mod.rs",
         "src/main.rs",
     ],
     aliases = aliases(),
@@ -21,7 +23,10 @@ rust_test(
     srcs = [
         "src/args.rs",
         "src/error.rs",
-        "src/git.rs",
+        "src/git/backend.rs",
+        "src/git/cli_backend.rs",
+        "src/git/mod.rs",
+        "src/git/tests.rs",
         "src/main.rs",
     ],
     aliases = aliases(),

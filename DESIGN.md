@@ -198,8 +198,8 @@ The MVP requires:
 - untracked files count as dirty;
 - ignored files do not count as dirty.
 
-Dirty tree errors should show a capped list of dirty entries, such as the first
-20 entries plus `and N more`.
+Dirty tree errors do not enumerate dirty files. Users can run `git status` for
+details when a clean working tree is required.
 
 There is no shallow repository override in the MVP.
 
@@ -567,11 +567,21 @@ src/
   main.rs          # top-level orchestration and process exit behavior
   args.rs          # clap definitions
   error.rs         # typed errors plus human/JSON formatting
-  git.rs           # git root/ref/dirty/worktree preparation logic
+  git/             # Git repository domain model and backend abstraction
+    mod.rs         # public GitRepository API and app-facing Git types
+    backend.rs     # private GitBackend trait used by GitRepository
+    cli_backend.rs # host `git` CLI implementation of GitBackend
+    tests.rs       # Git repository tests using temporary repositories
   toolchain.rs     # Java/Bazel resolution and validation
   bazel_diff.rs    # embedded JAR cache/extraction plus java -jar calls
   output.rs        # text/JSON parsing and formatting
 ```
+
+The Git module intentionally separates app-facing repository operations from
+the backend implementation. The CLI backend shells out to the host `git`
+executable today. The `GitBackend` trait is private to the `git` module so a
+future `git2` backend or fake test backend can be introduced without exposing
+that abstraction to the rest of the crate.
 
 Tests:
 
