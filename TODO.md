@@ -109,9 +109,9 @@ work. The CLI is intended to be built in a new repository named
 - [x] Omit dirty file list from errors; users can run `git status` for details.
 - [x] Enforce clean working tree unless `--dirty` is passed.
 - [x] Reject `--dirty` with explicit `--head-ref`.
-- [ ] Model prepared comparison workspaces for base and head.
-- [ ] Use current workspace for dirty head mode.
-- [ ] Use current workspace when it already represents the selected clean side.
+- [x] Model prepared comparison workspaces for base and head.
+- [x] Use current workspace for dirty head mode.
+- [x] Use current workspace when it already represents the selected clean side.
 - [ ] Create temporary detached worktree for base when needed.
 - [ ] Create temporary detached worktree for explicit/non-current head when
       needed.

@@ -23,16 +23,71 @@ pub enum OriginalCheckout {
     Detached { sha: String },
 }
 
+impl OriginalCheckout {
+    fn sha(&self) -> &str {
+        match self {
+            Self::Branch { sha, .. } | Self::Detached { sha } => sha,
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct ResolvedRef {
     pub reference: String,
     pub sha: String,
 }
 
+impl ResolvedRef {
+    fn worktree_plan(&self) -> CheckoutPlan {
+        CheckoutPlan::Worktree {
+            reference: self.reference.clone(),
+            sha: self.sha.clone(),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct ResolvedRefs {
     pub base: ResolvedRef,
     pub head: ResolvedRef,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum CheckoutPlan {
+    Current { git_root: PathBuf },
+    Worktree { reference: String, sha: String },
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct CheckoutPlans {
+    pub base: CheckoutPlan,
+    pub head: CheckoutPlan,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum HeadSelection<'a> {
+    Dirty,
+    Resolved(&'a ResolvedRef),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum Checkout {
+    Current { git_root: PathBuf },
+    Worktree { git_root: PathBuf },
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Checkouts {
+    pub base: Checkout,
+    pub head: Checkout,
+}
+
+impl Checkout {
+    pub fn git_root(&self) -> &Path {
+        match self {
+            Self::Current { git_root } | Self::Worktree { git_root } => git_root,
+        }
+    }
 }
 
 impl GitRepository {
@@ -101,6 +156,24 @@ impl GitRepository {
 
     pub fn is_working_tree_dirty(&self) -> Result<bool, AppError> {
         self.backend.is_working_tree_dirty(&self.root)
+    }
+
+    pub fn plan_checkouts(&self, base: &ResolvedRef, head: HeadSelection<'_>) -> CheckoutPlans {
+        let current_sha = self.original_checkout.sha();
+        let head_checkout_plan = match head {
+            HeadSelection::Dirty => CheckoutPlan::Current {
+                git_root: self.root.clone(),
+            },
+            HeadSelection::Resolved(head) if head.sha == current_sha => CheckoutPlan::Current {
+                git_root: self.root.clone(),
+            },
+            HeadSelection::Resolved(head) => head.worktree_plan(),
+        };
+
+        CheckoutPlans {
+            base: base.worktree_plan(),
+            head: head_checkout_plan,
+        }
     }
 
     pub fn root(&self) -> &Path {

@@ -1,4 +1,4 @@
-use super::{GitRepository, OriginalCheckout};
+use super::{CheckoutPlan, GitRepository, HeadSelection, OriginalCheckout, ResolvedRef};
 
 #[test]
 fn discovers_repository_from_directory_inside_repo() {
@@ -353,6 +353,135 @@ fn ignored_file_does_not_make_working_tree_dirty() {
         .expect("check working tree status");
 
     assert!(!is_dirty);
+
+    std::fs::remove_dir_all(repo_dir).expect("remove test repository");
+}
+
+#[test]
+fn plan_checkouts_uses_current_checkout_for_dirty_head() {
+    let repo_dir = new_temp_dir("plan-checkouts-dirty-head-repo");
+    run_git_for_test(&repo_dir, &["init", "--initial-branch", "main"]);
+    run_git_for_test(&repo_dir, &["config", "user.name", "Test User"]);
+    run_git_for_test(&repo_dir, &["config", "user.email", "test@example.invalid"]);
+    std::fs::write(repo_dir.join("README.md"), "# test\n").expect("write test file");
+    run_git_for_test(&repo_dir, &["add", "README.md"]);
+    run_git_for_test(&repo_dir, &["commit", "-m", "initial commit"]);
+    let repository =
+        GitRepository::discover(repo_dir.as_path()).expect("discover test Git repository");
+    let base = ResolvedRef {
+        reference: "origin/main".to_owned(),
+        sha: "base-sha".to_owned(),
+    };
+
+    let checkouts = repository.plan_checkouts(&base, HeadSelection::Dirty);
+
+    assert!(
+        matches!(&checkouts.head, CheckoutPlan::Current { git_root } if git_root == repository.root()),
+        "expected head checkout to use current checkout at {}, got {:?}",
+        repository.root().display(),
+        checkouts.head
+    );
+
+    std::fs::remove_dir_all(repo_dir).expect("remove test repository");
+}
+
+#[test]
+fn plan_checkouts_uses_current_checkout_for_resolved_head_at_current_sha() {
+    let repo_dir = new_temp_dir("plan-checkouts-current-head-repo");
+    run_git_for_test(&repo_dir, &["init", "--initial-branch", "main"]);
+    run_git_for_test(&repo_dir, &["config", "user.name", "Test User"]);
+    run_git_for_test(&repo_dir, &["config", "user.email", "test@example.invalid"]);
+    std::fs::write(repo_dir.join("README.md"), "# test\n").expect("write test file");
+    run_git_for_test(&repo_dir, &["add", "README.md"]);
+    run_git_for_test(&repo_dir, &["commit", "-m", "initial commit"]);
+    let repository =
+        GitRepository::discover(repo_dir.as_path()).expect("discover test Git repository");
+    let current_sha = match repository.original_checkout() {
+        OriginalCheckout::Branch { sha, .. } | OriginalCheckout::Detached { sha } => sha.clone(),
+    };
+    let base = ResolvedRef {
+        reference: "origin/main".to_owned(),
+        sha: "base-sha".to_owned(),
+    };
+    let head = ResolvedRef {
+        reference: "HEAD".to_owned(),
+        sha: current_sha,
+    };
+
+    let checkouts = repository.plan_checkouts(&base, HeadSelection::Resolved(&head));
+
+    assert!(
+        matches!(&checkouts.head, CheckoutPlan::Current { git_root } if git_root == repository.root()),
+        "expected head checkout to use current checkout at {}, got {:?}",
+        repository.root().display(),
+        checkouts.head
+    );
+
+    std::fs::remove_dir_all(repo_dir).expect("remove test repository");
+}
+
+#[test]
+fn plan_checkouts_uses_worktree_for_resolved_head_at_other_sha() {
+    let repo_dir = new_temp_dir("plan-checkouts-other-head-repo");
+    run_git_for_test(&repo_dir, &["init", "--initial-branch", "main"]);
+    run_git_for_test(&repo_dir, &["config", "user.name", "Test User"]);
+    run_git_for_test(&repo_dir, &["config", "user.email", "test@example.invalid"]);
+    std::fs::write(repo_dir.join("README.md"), "# test\n").expect("write test file");
+    run_git_for_test(&repo_dir, &["add", "README.md"]);
+    run_git_for_test(&repo_dir, &["commit", "-m", "initial commit"]);
+    let repository =
+        GitRepository::discover(repo_dir.as_path()).expect("discover test Git repository");
+    let base = ResolvedRef {
+        reference: "origin/main".to_owned(),
+        sha: "base-sha".to_owned(),
+    };
+    let head = ResolvedRef {
+        reference: "HEAD~1".to_owned(),
+        sha: "other-sha".to_owned(),
+    };
+
+    let checkouts = repository.plan_checkouts(&base, HeadSelection::Resolved(&head));
+
+    assert_eq!(
+        checkouts.head,
+        CheckoutPlan::Worktree {
+            reference: "HEAD~1".to_owned(),
+            sha: "other-sha".to_owned(),
+        },
+        "expected head checkout to use a worktree, got {:?}",
+        checkouts.head
+    );
+
+    std::fs::remove_dir_all(repo_dir).expect("remove test repository");
+}
+
+#[test]
+fn plan_checkouts_uses_worktree_for_base() {
+    let repo_dir = new_temp_dir("plan-checkouts-base-worktree-repo");
+    run_git_for_test(&repo_dir, &["init", "--initial-branch", "main"]);
+    run_git_for_test(&repo_dir, &["config", "user.name", "Test User"]);
+    run_git_for_test(&repo_dir, &["config", "user.email", "test@example.invalid"]);
+    std::fs::write(repo_dir.join("README.md"), "# test\n").expect("write test file");
+    run_git_for_test(&repo_dir, &["add", "README.md"]);
+    run_git_for_test(&repo_dir, &["commit", "-m", "initial commit"]);
+    let repository =
+        GitRepository::discover(repo_dir.as_path()).expect("discover test Git repository");
+    let base = ResolvedRef {
+        reference: "origin/main".to_owned(),
+        sha: "base-sha".to_owned(),
+    };
+
+    let checkouts = repository.plan_checkouts(&base, HeadSelection::Dirty);
+
+    assert_eq!(
+        checkouts.base,
+        CheckoutPlan::Worktree {
+            reference: "origin/main".to_owned(),
+            sha: "base-sha".to_owned(),
+        },
+        "expected base checkout to use a worktree, got {:?}",
+        checkouts.base
+    );
 
     std::fs::remove_dir_all(repo_dir).expect("remove test repository");
 }
