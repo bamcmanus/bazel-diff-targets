@@ -763,6 +763,53 @@ fn prepare_checkouts_materializes_base_and_head_worktrees() {
     std::fs::remove_dir_all(repo_dir).expect("remove test repository");
 }
 
+#[test]
+fn prepare_checkouts_cleans_up_base_when_head_preparation_fails() {
+    let repo_dir = new_temp_dir("prepare-checkouts-cleanup-repo");
+    run_git_for_test(&repo_dir, &["init", "--initial-branch", "main"]);
+    run_git_for_test(&repo_dir, &["config", "user.name", "Test User"]);
+    run_git_for_test(&repo_dir, &["config", "user.email", "test@example.invalid"]);
+    std::fs::write(repo_dir.join("README.md"), "# test\n").expect("write test file");
+    run_git_for_test(&repo_dir, &["add", "README.md"]);
+    run_git_for_test(&repo_dir, &["commit", "-m", "initial commit"]);
+    let sha = run_git_output_for_test(&repo_dir, &["rev-parse", "HEAD"]);
+    let repository =
+        GitRepository::discover(repo_dir.as_path()).expect("discover test Git repository");
+    let plans = CheckoutPlans {
+        base: CheckoutPlan::Worktree {
+            reference: "origin/main".to_owned(),
+            sha,
+        },
+        head: CheckoutPlan::Worktree {
+            reference: "HEAD~1".to_owned(),
+            sha: "not-a-commit".to_owned(),
+        },
+    };
+
+    let result = repository.prepare_checkouts(plans);
+
+    assert!(
+        result.is_err(),
+        "preparing checkouts should fail when the head SHA is invalid, got {result:?}"
+    );
+    let worktree_list = run_git_output_for_test(&repo_dir, &["worktree", "list", "--porcelain"]);
+    let worktree_count = worktree_list
+        .lines()
+        .filter(|line| line.starts_with("worktree "))
+        .count();
+    assert_eq!(
+        worktree_count, 1,
+        "base worktree should be deregistered after head preparation fails: {worktree_list}"
+    );
+    let original_branch = run_git_output_for_test(&repo_dir, &["symbolic-ref", "--short", "HEAD"]);
+    assert_eq!(
+        original_branch, "main",
+        "original checkout should remain on main after failed checkout preparation"
+    );
+
+    std::fs::remove_dir_all(repo_dir).expect("remove test repository");
+}
+
 fn run_git_output_for_test(root: &std::path::Path, args: &[&str]) -> String {
     let output = std::process::Command::new("git")
         .args(args)
