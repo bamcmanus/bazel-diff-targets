@@ -11,12 +11,6 @@ use cli_backend::CliGitBackend;
 
 use crate::error::AppError;
 
-pub struct GitRepository {
-    root: PathBuf,
-    original_checkout: OriginalCheckout,
-    backend: CliGitBackend,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OriginalCheckout {
     Branch { name: String, sha: String },
@@ -72,8 +66,13 @@ pub enum HeadSelection<'a> {
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Checkout {
-    Current { git_root: PathBuf },
-    Worktree { git_root: PathBuf },
+    Current {
+        git_root: PathBuf,
+    },
+    Worktree {
+        git_root: PathBuf,
+        temporary_root: PathBuf,
+    },
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -85,9 +84,15 @@ pub struct Checkouts {
 impl Checkout {
     pub fn git_root(&self) -> &Path {
         match self {
-            Self::Current { git_root } | Self::Worktree { git_root } => git_root,
+            Self::Current { git_root } | Self::Worktree { git_root, .. } => git_root,
         }
     }
+}
+
+pub struct GitRepository {
+    root: PathBuf,
+    original_checkout: OriginalCheckout,
+    backend: CliGitBackend,
 }
 
 impl GitRepository {
@@ -173,6 +178,106 @@ impl GitRepository {
         CheckoutPlans {
             base: base.worktree_plan(),
             head: head_checkout_plan,
+        }
+    }
+
+    pub(crate) fn remove_worktree(&self, worktree_root: &Path) -> Result<(), AppError> {
+        self.backend.remove_worktree(&self.root, worktree_root)
+    }
+
+    pub(crate) fn cleanup_checkouts(&self, checkouts: Checkouts) -> Result<(), AppError> {
+        let base_result = self.cleanup_checkout(checkouts.base);
+        let head_result = self.cleanup_checkout(checkouts.head);
+
+        match (base_result, head_result) {
+            (Ok(()), Ok(())) => Ok(()),
+            (Err(error), Ok(())) => Err(AppError::CheckoutFailure { message: format!("failed to clean up base checkout: {error}") }),
+            (Ok(()), Err(error)) => Err(AppError::CheckoutFailure { message: format!("failed to clean up head checkout: {error}") }),
+            (Err(base_error), Err(head_error)) => Err(AppError::CheckoutFailure { message: format!("failed to clean up base checkout: {base_error}; failed to clean up head checkout: {head_error}") }),
+
+        }
+    }
+
+    fn cleanup_checkout(&self, checkout: Checkout) -> Result<(), AppError> {
+        match checkout {
+            Checkout::Current { .. } => Ok(()),
+            Checkout::Worktree {
+                git_root,
+                temporary_root,
+            } => {
+                self.remove_worktree(git_root.as_path())?;
+
+                std::fs::remove_dir_all(temporary_root.as_path()).map_err(|error| {
+                    AppError::CheckoutFailure {
+                        message: format!(
+                            "failed to remove temporary worktree directory {}: {error}",
+                            temporary_root.display()
+                        ),
+                    }
+                })
+            }
+        }
+    }
+
+    pub(crate) fn add_detached_worktree(
+        &self,
+        worktree_root: &Path,
+        sha: &str,
+    ) -> Result<(), AppError> {
+        self.backend
+            .add_detached_worktree(&self.root, worktree_root, sha)
+    }
+
+    pub(crate) fn prepare_checkouts(&self, plans: CheckoutPlans) -> Result<Checkouts, AppError> {
+        let CheckoutPlans {
+            base: base_plan,
+            head: head_plan,
+        } = plans;
+
+        let base_checkout = self.prepare_checkout(base_plan)?;
+        let head_checkout = match self.prepare_checkout(head_plan) {
+            Ok(head_checkout) => head_checkout,
+            Err(preparation_error) => match self.cleanup_checkout(base_checkout) {
+                Ok(()) => return Err(preparation_error),
+                Err(cleanup_error) => {
+                    return Err(AppError::CheckoutFailure {
+                        message: format!(
+                            "failed to prepare head checkout: {preparation_error}; \
+                            failed to clean up base checkout: {cleanup_error}"
+                        ),
+                    })
+                }
+            },
+        };
+
+        Ok(Checkouts {
+            base: base_checkout,
+            head: head_checkout,
+        })
+    }
+
+    fn prepare_checkout(&self, plan: CheckoutPlan) -> Result<Checkout, AppError> {
+        match plan {
+            CheckoutPlan::Current { git_root } => Ok(Checkout::Current { git_root }),
+            CheckoutPlan::Worktree { sha, .. } => {
+                let temp_directory = tempfile::Builder::new()
+                    .prefix("bazel-diff-targets-")
+                    .tempdir()
+                    .map_err(|error| AppError::CheckoutFailure {
+                        message: format!("failed to create temporary worktree directory: {error}"),
+                    })?;
+
+                let worktree_root = temp_directory.path().join("worktree");
+
+                self.add_detached_worktree(worktree_root.as_path(), sha.as_str())?;
+
+                let temporary_root = temp_directory.keep();
+
+                Ok(Checkout::Worktree {
+                    git_root: worktree_root,
+                    temporary_root,
+                })
+            }
         }
     }
 

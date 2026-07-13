@@ -112,16 +112,16 @@ work. The CLI is intended to be built in a new repository named
 - [x] Model prepared comparison workspaces for base and head.
 - [x] Use current workspace for dirty head mode.
 - [x] Use current workspace when it already represents the selected clean side.
-- [ ] Create temporary detached worktree for base when needed.
-- [ ] Create temporary detached worktree for explicit/non-current head when
+- [x] Create temporary detached worktree for base when needed.
+- [x] Create temporary detached worktree for explicit/non-current head when
       needed.
 - [ ] Map workspace path into temporary worktrees by preserving the
       Git-root-relative path.
-- [ ] Remove temporary worktrees and files created by the CLI during cleanup.
+- [x] Remove temporary worktrees and files created by the CLI during cleanup.
 - [ ] Add unit tests with fake command runner where practical.
-- [ ] Add integration tests for ref inference in a temp Git repo.
+- [x] Add integration tests for ref inference in a temp Git repo.
 - [ ] Add integration tests for dirty mode using the current workspace.
-- [ ] Add integration tests for temporary worktree creation and cleanup.
+- [x] Add integration tests for temporary worktree creation and cleanup.
 
 ## Phase 6: Workspace Validation
 

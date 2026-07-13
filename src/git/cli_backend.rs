@@ -145,4 +145,49 @@ impl GitBackend for CliGitBackend {
 
         Ok(!output.is_empty())
     }
+
+    fn remove_worktree(
+        &self,
+        repository_root: &Path,
+        worktree_root: &Path,
+    ) -> Result<(), AppError> {
+        let worktree_root = worktree_root
+            .to_str()
+            .ok_or_else(|| AppError::CheckoutFailure {
+                message: format!(
+                    "worktree path is not valid UTF-8: {}",
+                    worktree_root.display()
+                ),
+            })?;
+
+        run_git(
+            repository_root,
+            &["worktree", "remove", "--force", worktree_root],
+        )?;
+
+        Ok(())
+    }
+
+    fn add_detached_worktree(
+        &self,
+        repository_root: &Path,
+        worktree_root: &Path,
+        sha: &str,
+    ) -> Result<(), AppError> {
+        let worktree_root = worktree_root
+            .to_str()
+            .ok_or_else(|| AppError::CheckoutFailure {
+                message: format!(
+                    "worktree path is not valid UTF-8: {}",
+                    worktree_root.display()
+                ),
+            })?;
+
+        run_git(
+            repository_root,
+            &["worktree", "add", "--detach", worktree_root, sha],
+        )?;
+
+        Ok(())
+    }
 }

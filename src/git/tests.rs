@@ -1,4 +1,7 @@
-use super::{CheckoutPlan, GitRepository, HeadSelection, OriginalCheckout, ResolvedRef};
+use super::{
+    Checkout, CheckoutPlan, CheckoutPlans, Checkouts, GitRepository, HeadSelection,
+    OriginalCheckout, ResolvedRef,
+};
 
 #[test]
 fn discovers_repository_from_directory_inside_repo() {
@@ -483,6 +486,280 @@ fn plan_checkouts_uses_worktree_for_base() {
         checkouts.base
     );
 
+    std::fs::remove_dir_all(repo_dir).expect("remove test repository");
+}
+
+#[test]
+fn removes_temporary_worktree() {
+    let repo_dir = new_temp_dir("remove-worktree-repo");
+    run_git_for_test(&repo_dir, &["init", "--initial-branch", "main"]);
+    run_git_for_test(&repo_dir, &["config", "user.name", "Test User"]);
+    run_git_for_test(&repo_dir, &["config", "user.email", "test@example.invalid"]);
+    std::fs::write(repo_dir.join("README.md"), "# test\n").expect("write test file");
+    run_git_for_test(&repo_dir, &["add", "README.md"]);
+    run_git_for_test(&repo_dir, &["commit", "-m", "initial commit"]);
+    let sha = run_git_output_for_test(&repo_dir, &["rev-parse", "HEAD"]);
+    let worktree_dir = new_temp_dir("remove-worktree-destination");
+    std::fs::remove_dir_all(&worktree_dir).expect("remove worktree destination placeholder");
+    run_git_for_test(
+        &repo_dir,
+        &[
+            "worktree",
+            "add",
+            "--detach",
+            worktree_dir
+                .to_str()
+                .expect("temp path should be valid UTF-8"),
+            sha.as_str(),
+        ],
+    );
+    let canonical_worktree_path = worktree_dir
+        .canonicalize()
+        .expect("canonicalize temporary worktree path");
+    let repository =
+        GitRepository::discover(repo_dir.as_path()).expect("discover test Git repository");
+
+    repository
+        .remove_worktree(canonical_worktree_path.as_path())
+        .expect("remove temporary worktree");
+
+    assert!(
+        !worktree_dir.exists(),
+        "temporary worktree should be removed from {}",
+        worktree_dir.display()
+    );
+    let worktree_list = run_git_output_for_test(&repo_dir, &["worktree", "list", "--porcelain"]);
+    let worktree_entry = format!("worktree {}", canonical_worktree_path.display());
+    assert!(
+        !worktree_list.contains(worktree_entry.as_str()),
+        "temporary worktree should not remain registered: {worktree_entry}\n{worktree_list}"
+    );
+    let current_branch = run_git_output_for_test(&repo_dir, &["symbolic-ref", "--short", "HEAD"]);
+    assert_eq!(
+        current_branch, "main",
+        "original checkout should remain on main after removing a temporary worktree"
+    );
+
+    std::fs::remove_dir_all(repo_dir).expect("remove test repository");
+}
+
+#[test]
+fn adds_detached_temporary_worktree() {
+    let repo_dir = new_temp_dir("add-detached-worktree-repo");
+    run_git_for_test(&repo_dir, &["init", "--initial-branch", "main"]);
+    run_git_for_test(&repo_dir, &["config", "user.name", "Test User"]);
+    run_git_for_test(&repo_dir, &["config", "user.email", "test@example.invalid"]);
+    std::fs::write(repo_dir.join("README.md"), "# test\n").expect("write test file");
+    run_git_for_test(&repo_dir, &["add", "README.md"]);
+    run_git_for_test(&repo_dir, &["commit", "-m", "initial commit"]);
+    let sha = run_git_output_for_test(&repo_dir, &["rev-parse", "HEAD"]);
+    let temporary_parent = tempfile::tempdir().expect("create temporary worktree parent");
+    let worktree_root = temporary_parent.path().join("worktree");
+    let repository =
+        GitRepository::discover(repo_dir.as_path()).expect("discover test Git repository");
+
+    repository
+        .add_detached_worktree(worktree_root.as_path(), sha.as_str())
+        .expect("add detached temporary worktree");
+
+    let worktree_sha = run_git_output_for_test(&worktree_root, &["rev-parse", "HEAD"]);
+    assert_eq!(
+        worktree_sha, sha,
+        "temporary worktree should be checked out at the requested commit"
+    );
+    let detached_head = std::process::Command::new("git")
+        .args(["symbolic-ref", "--quiet", "--short", "HEAD"])
+        .current_dir(&worktree_root)
+        .output()
+        .expect("check temporary worktree HEAD");
+    assert!(
+        !detached_head.status.success(),
+        "temporary worktree HEAD should be detached\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&detached_head.stdout),
+        String::from_utf8_lossy(&detached_head.stderr)
+    );
+    let original_branch = run_git_output_for_test(&repo_dir, &["symbolic-ref", "--short", "HEAD"]);
+    assert_eq!(
+        original_branch, "main",
+        "original checkout should remain on main after adding a temporary worktree"
+    );
+
+    repository
+        .remove_worktree(worktree_root.as_path())
+        .expect("remove temporary worktree");
+    std::fs::remove_dir_all(repo_dir).expect("remove test repository");
+}
+
+#[test]
+fn cleanup_checkouts_removes_base_and_head_worktrees() {
+    let repo_dir = new_temp_dir("cleanup-checkouts-repo");
+    run_git_for_test(&repo_dir, &["init", "--initial-branch", "main"]);
+    run_git_for_test(&repo_dir, &["config", "user.name", "Test User"]);
+    run_git_for_test(&repo_dir, &["config", "user.email", "test@example.invalid"]);
+    std::fs::write(repo_dir.join("README.md"), "# test\n").expect("write test file");
+    run_git_for_test(&repo_dir, &["add", "README.md"]);
+    run_git_for_test(&repo_dir, &["commit", "-m", "initial commit"]);
+    let sha = run_git_output_for_test(&repo_dir, &["rev-parse", "HEAD"]);
+    let base_temporary_root = tempfile::tempdir().expect("create base temporary root");
+    let head_temporary_root = tempfile::tempdir().expect("create head temporary root");
+    let base_worktree_root = base_temporary_root.path().join("worktree");
+    let head_worktree_root = head_temporary_root.path().join("worktree");
+    let repository =
+        GitRepository::discover(repo_dir.as_path()).expect("discover test Git repository");
+    repository
+        .add_detached_worktree(base_worktree_root.as_path(), sha.as_str())
+        .expect("add base detached temporary worktree");
+    repository
+        .add_detached_worktree(head_worktree_root.as_path(), sha.as_str())
+        .expect("add head detached temporary worktree");
+    let canonical_base_worktree_root = base_worktree_root
+        .canonicalize()
+        .expect("canonicalize base temporary worktree path");
+    let canonical_head_worktree_root = head_worktree_root
+        .canonicalize()
+        .expect("canonicalize head temporary worktree path");
+    let checkouts = Checkouts {
+        base: Checkout::Worktree {
+            git_root: canonical_base_worktree_root.clone(),
+            temporary_root: base_temporary_root.path().to_path_buf(),
+        },
+        head: Checkout::Worktree {
+            git_root: canonical_head_worktree_root.clone(),
+            temporary_root: head_temporary_root.path().to_path_buf(),
+        },
+    };
+
+    repository
+        .cleanup_checkouts(checkouts)
+        .expect("clean up base and head temporary worktrees");
+
+    assert!(
+        !base_worktree_root.exists(),
+        "base temporary worktree should be removed from {}",
+        base_worktree_root.display()
+    );
+    assert!(
+        !head_worktree_root.exists(),
+        "head temporary worktree should be removed from {}",
+        head_worktree_root.display()
+    );
+    assert!(
+        !base_temporary_root.path().exists(),
+        "base temporary root should be removed from {}",
+        base_temporary_root.path().display()
+    );
+    assert!(
+        !head_temporary_root.path().exists(),
+        "head temporary root should be removed from {}",
+        head_temporary_root.path().display()
+    );
+    let worktree_list = run_git_output_for_test(&repo_dir, &["worktree", "list", "--porcelain"]);
+    let base_worktree_entry = format!("worktree {}", canonical_base_worktree_root.display());
+    let head_worktree_entry = format!("worktree {}", canonical_head_worktree_root.display());
+    assert!(
+        !worktree_list.contains(base_worktree_entry.as_str()),
+        "base temporary worktree should not remain registered: {base_worktree_entry}\n{worktree_list}"
+    );
+    assert!(
+        !worktree_list.contains(head_worktree_entry.as_str()),
+        "head temporary worktree should not remain registered: {head_worktree_entry}\n{worktree_list}"
+    );
+    let original_branch = run_git_output_for_test(&repo_dir, &["symbolic-ref", "--short", "HEAD"]);
+    assert_eq!(
+        original_branch, "main",
+        "original checkout should remain on main after cleaning up temporary worktrees"
+    );
+
+    std::fs::remove_dir_all(repo_dir).expect("remove test repository");
+}
+
+#[test]
+fn prepare_checkouts_materializes_base_and_head_worktrees() {
+    let repo_dir = new_temp_dir("prepare-checkouts-repo");
+    run_git_for_test(&repo_dir, &["init", "--initial-branch", "main"]);
+    run_git_for_test(&repo_dir, &["config", "user.name", "Test User"]);
+    run_git_for_test(&repo_dir, &["config", "user.email", "test@example.invalid"]);
+    std::fs::write(repo_dir.join("README.md"), "# test\n").expect("write test file");
+    run_git_for_test(&repo_dir, &["add", "README.md"]);
+    run_git_for_test(&repo_dir, &["commit", "-m", "initial commit"]);
+    let sha = run_git_output_for_test(&repo_dir, &["rev-parse", "HEAD"]);
+    let repository =
+        GitRepository::discover(repo_dir.as_path()).expect("discover test Git repository");
+    let plans = CheckoutPlans {
+        base: CheckoutPlan::Worktree {
+            reference: "origin/main".to_owned(),
+            sha: sha.clone(),
+        },
+        head: CheckoutPlan::Worktree {
+            reference: "HEAD~1".to_owned(),
+            sha: sha.clone(),
+        },
+    };
+
+    let checkouts = repository
+        .prepare_checkouts(plans)
+        .expect("prepare comparison checkouts");
+
+    assert!(
+        matches!(&checkouts.base, Checkout::Worktree { .. }),
+        "expected base checkout to be a worktree, got {:?}",
+        checkouts.base
+    );
+    assert!(
+        matches!(&checkouts.head, Checkout::Worktree { .. }),
+        "expected head checkout to be a worktree, got {:?}",
+        checkouts.head
+    );
+    let base_git_root = checkouts.base.git_root();
+    let head_git_root = checkouts.head.git_root();
+    assert_ne!(
+        base_git_root,
+        head_git_root,
+        "base and head worktrees must have distinct roots: base={}, head={}",
+        base_git_root.display(),
+        head_git_root.display()
+    );
+    let base_sha = run_git_output_for_test(base_git_root, &["rev-parse", "HEAD"]);
+    assert_eq!(
+        base_sha, sha,
+        "base worktree should be checked out at the requested commit"
+    );
+    let head_sha = run_git_output_for_test(head_git_root, &["rev-parse", "HEAD"]);
+    assert_eq!(
+        head_sha, sha,
+        "head worktree should be checked out at the requested commit"
+    );
+    let base_head = std::process::Command::new("git")
+        .args(["symbolic-ref", "--quiet", "--short", "HEAD"])
+        .current_dir(base_git_root)
+        .output()
+        .expect("check base worktree HEAD");
+    assert!(
+        !base_head.status.success(),
+        "base worktree HEAD should be detached\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&base_head.stdout),
+        String::from_utf8_lossy(&base_head.stderr)
+    );
+    let head_head = std::process::Command::new("git")
+        .args(["symbolic-ref", "--quiet", "--short", "HEAD"])
+        .current_dir(head_git_root)
+        .output()
+        .expect("check head worktree HEAD");
+    assert!(
+        !head_head.status.success(),
+        "head worktree HEAD should be detached\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&head_head.stdout),
+        String::from_utf8_lossy(&head_head.stderr)
+    );
+    let original_branch = run_git_output_for_test(&repo_dir, &["symbolic-ref", "--short", "HEAD"]);
+    assert_eq!(
+        original_branch, "main",
+        "original checkout should remain on main after preparing comparison checkouts"
+    );
+
+    repository
+        .cleanup_checkouts(checkouts)
+        .expect("clean up comparison checkouts");
     std::fs::remove_dir_all(repo_dir).expect("remove test repository");
 }
 

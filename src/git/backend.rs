@@ -16,4 +16,12 @@ pub(super) trait GitBackend {
         right_ref: &str,
     ) -> Result<Option<String>, AppError>;
     fn is_working_tree_dirty(&self, root: &Path) -> Result<bool, AppError>;
+    fn remove_worktree(&self, repository_root: &Path, worktree_root: &Path)
+        -> Result<(), AppError>;
+    fn add_detached_worktree(
+        &self,
+        repository_root: &Path,
+        worktree_root: &Path,
+        sha: &str,
+    ) -> Result<(), AppError>;
 }
